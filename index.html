@@ -53,6 +53,12 @@ ul.r{margin:0;padding-right:18px;font-size:13.5px}ul.r li{margin:4px 0}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#9aa5b1;margin-left:6px}.dot.on{background:#1aa36f;box-shadow:0 0 0 4px rgba(26,163,111,.18)}
 .act{font-size:12.5px;padding:6px 0;border-top:1px solid var(--line);display:flex;gap:8px}.act:first-child{border-top:0}.act .tm{color:var(--mut);min-width:38px;direction:ltr}.act .w{color:var(--mut);font-size:11px;white-space:nowrap}
 .act .x{flex:1;unicode-bidi:plaintext;word-break:break-word}
+.dp{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}.dp>summary{list-style:none;padding:12px 14px;cursor:pointer}.dp>summary::-webkit-details-marker{display:none}
+.dp .dn{font-weight:700}.dp .de{font-size:11.5px;color:var(--mut);direction:ltr;text-align:right}.dp .dg{font-size:13px;color:#344255;margin-top:4px}
+.rl{border-top:1px solid var(--line);padding:10px 14px;font-size:13px}.rl .rn{font-weight:700}.rl .re{font-size:11px;color:var(--mut);direction:ltr;display:inline-block;margin-right:6px}
+.rl ul{margin:4px 0 0;padding-right:18px;color:#344255}.chip{display:inline-block;font-size:11px;background:#eef1f4;color:#344255;border-radius:6px;padding:1px 7px;margin:2px 0 2px 4px}
+.kv{font-size:12.5px;color:#344255;margin-top:5px}.kv b{color:var(--ink)}.sx{display:block;font-size:12px;color:var(--mut);margin-top:1px}
+details.tk>summary{list-style:none;cursor:pointer}details.tk>summary::-webkit-details-marker{display:none}
 .lock{padding:60px 20px;text-align:center;color:var(--mut)}
 .mut{color:var(--mut);font-size:13px}
 </style>
@@ -72,6 +78,7 @@ async function dec(){
   return JSON.parse(new TextDecoder().decode(pt));
 }
 function render(P){
+  const RN=id=>{const r=(P.roles||{})[id];return r?r.name:id||''};
   const all=P.phases.flatMap(p=>p.tasks), fin=t=>t.status==='done'||t.status==='approved';
   const pct=Math.round(100*all.filter(fin).length/all.length);
   const doing=all.filter(t=>t.status==='doing'), gates=all.filter(t=>t.status==='gate');
@@ -88,13 +95,18 @@ function render(P){
   h+=`<h2>المراحل</h2>`;
   for(const p of P.phases){
     const d=p.tasks.filter(fin).length, pp=Math.round(100*d/p.tasks.length);
-    h+=`<details class="ph"${p===cur?' open':''}><summary><span class="cnt">${d}/${p.tasks.length}</span><div class="phid">${esc(p.id)}</div><div class="pht">${esc(p.title)}</div><div class="phg">${esc(p.goal)}</div><div class="bar"><i style="width:${pp}%"></i></div></summary>`;
-    for(const t of p.tasks) h+=`<div class="t"><div class="h"><span class="id">${esc(t.id)}</span><span class="ti">${esc(t.title)}${t.gate?' <span class="st s-gate" style="font-size:10.5px">بوابة المالك</span>':''}</span><span class="st s-${t.status}">${SL[t.status]||t.status}</span></div><p>${esc(t.detail)}</p>${(t.steps||[]).length?`<ul class="stp">${t.steps.map(x=>`<li class="${x.status}"><i>${x.status==='done'?'✓':x.status==='doing'?'●':x.status==='blocked'?'!':'○'}</i><span>${esc(x.text)}</span></li>`).join('')}</ul>`:''}<div class="acc"><b>معيار الإنجاز:</b> ${esc(t.acceptance)}</div>${t.evidence?`<div class="ev">الدليل: ${esc(t.evidence)}</div>`:''}${t.updated?`<div class="acc">تحديث: ${esc(t.updated)}</div>`:''}</div>`;
+    h+=`<details class="ph"${p===cur?' open':''}><summary><span class="cnt">${d}/${p.tasks.length}</span><div class="phid">${esc(p.id)}</div><div class="pht">${esc(p.title)}</div><div class="phg">${esc(p.goal)}</div>${p.why?`<div class="kv"><b>لماذا:</b> ${esc(p.why)}</div>`:''}${p.entry?`<div class="kv"><b>تبدأ عندما:</b> ${esc(p.entry)}</div><div class="kv"><b>تنتهي عندما:</b> ${esc(p.exit)}</div>`:''}<div class="bar"><i style="width:${pp}%"></i></div></summary>`;
+    for(const t of p.tasks) h+=`<details class="t tk"><summary><div class="h"><span class="id">${esc(t.id)}</span><span class="ti">${esc(t.title)}${t.gate?' <span class="st s-gate" style="font-size:10.5px">بوابة المالك</span>':''}</span><span class="st s-${t.status}">${SL[t.status]||t.status}</span></div><p>${esc(t.goal||t.detail)}</p><div class="kv">${(t.steps||[]).filter(x=>x.status==='done').length}/${(t.steps||[]).length} خطوة · اضغط للتفاصيل</div></summary>
+${t.why?`<div class="kv"><b>لماذا:</b> ${esc(t.why)}</div>`:''}${t.goal?`<div class="kv"><b>الوصف:</b> ${esc(t.detail)}</div>`:''}
+${t.owner?`<div class="kv"><b>المسؤول:</b> ${esc(RN(t.owner))} · <b>المراجع:</b> ${esc(RN(t.reviewer))}</div>`:''}
+${(t.inputs||[]).length?`<div class="kv"><b>المدخلات:</b> ${t.inputs.map(esc).join('، ')}</div>`:''}
+${(t.outputs||[]).length?`<div class="kv"><b>المخرجات:</b> ${t.outputs.map(esc).join('، ')}</div>`:''}${(t.steps||[]).length?`<ul class="stp">${t.steps.map(x=>`<li class="${x.status}"><i>${x.status==='done'?'✓':x.status==='doing'?'●':x.status==='blocked'?'!':'○'}</i><span>${esc(x.text)}${x.explain?`<span class="sx">${esc(x.explain)}</span>`:''}${x.role?`<span class="sx">المسؤول: ${esc(RN(x.role))}${x.output?' · المخرج: '+esc(x.output):''}</span>`:''}</span></li>`).join('')}</ul>`:''}<div class="acc"><b>معيار الإنجاز:</b> ${esc(t.acceptance)}</div>${t.evidence?`<div class="ev">الدليل: ${esc(t.evidence)}</div>`:''}${t.updated?`<div class="acc">تحديث: ${esc(t.updated)}</div>`:''}</details>`;
     h+=`</details>`;
   }
   h+=`<h2>بطاقة الدرجات (الهدف 10/10)</h2><div class="card">`+P.score.map(s=>{const v=s.now;return `<div class="sc"><span class="n">${esc(s.name)}</span><span class="v">${v==null?'لم يُقَس':v+'/10'}</span><div class="bar"><i style="width:${v==null?0:v*10}%"></i></div><div class="ten">10/10 يعني: ${esc(s.ten)}</div></div>`}).join('')+`<p class="mut" style="margin:10px 0 0">الدرجات الحالية أولية من الدراسة الأولى، وتُعاد قياساتها بالكامل في المرحلة P3.</p></div>`;
   h+=`<h2>سجل العمل</h2><div class="card">`+((P.log||[]).length?P.log.map(l=>`<div class="lg"><div class="d">${esc(l.t)}</div>${esc(l.text)}</div>`).join(''):'<span class="mut">لا يوجد بعد.</span>')+`</div>`;
-  h+=`<h2>شركة 359: الأقسام</h2><div class="card">`+P.org.map(o=>`<div class="org"><div><b>${esc(o.name)}</b><div class="mut">${esc(o.role)}</div></div><div class="e">${esc(o.en)}</div></div>`).join('')+`</div>`;
+  h+=`<h2>شركة 359: ${(P.depts||[]).length} أقسام · ${(P.depts||[]).reduce((a,d)=>a+d.roles.length,0)} دوراً</h2>`+(P.depts||[]).map(d=>`<details class="dp"><summary><div class="dn">${esc(d.name)} <span class="chip">${d.roles.length} أدوار</span></div><div class="de">${esc(d.en)}</div><div class="dg"><b>الهدف:</b> ${esc(d.goal)}</div></summary>${d.roles.map(r=>`<div class="rl"><span class="rn">${esc(r.name)}</span><span class="re">${esc(r.en)}</span><span class="chip">${esc(r.model)}</span><div class="kv"><b>الهدف:</b> ${esc(r.goal)}</div><div class="kv"><b>المسؤوليات:</b></div><ul>${r.duties.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><div class="kv"><b>المخرجات:</b> ${r.outputs.map(esc).join('، ')}</div><div class="kv"><b>يراجعه:</b> ${esc(RN(r.reviewer))}</div></div>`).join('')}</details>`).join('');
+  if((P.platform||[]).length) h+=`<h2>خريطة مكونات المنصة (${P.platform.length})</h2><div class="card">`+P.platform.map(c=>`<div class="rl" style="padding:8px 0"><span class="rn" style="direction:ltr">${esc(c.name)}</span><div class="kv">${esc(c.what)}</div>${c.users?`<div class="kv"><b>المستخدمون:</b> ${esc(c.users)}</div>`:''}${c.notes?`<div class="kv"><b>ملاحظات التقييم الأولي:</b> ${esc(c.notes)}</div>`:''}</div>`).join('')+`</div>`;
   h+=`<h2>قواعد العمل</h2><div class="card"><ul class="r">`+P.rules.map(r=>`<li>${esc(r)}</li>`).join('')+`</ul></div>`;
   h+=`<h2>الاشتراك والحصة</h2><div class="card"><div>${esc(P.quota.plan)} · ينتهي ${esc(P.quota.ends)} · يتجدد ${esc(P.quota.reset)}</div><div class="mut">${esc(P.quota.note)}</div></div>`;
   h+=`<h2>مسار موازٍ</h2>`+P.track_b.map(t=>`<div class="card"><span class="st s-${t.status}">${SL[t.status]||t.status}</span> <b>${esc(t.title)}</b>${(()=>{const c=(t.steps||[]).filter(x=>x.status==='doing');const d=(t.steps||[]).filter(x=>x.status==='done').length;return `<div class="mut" style="margin-top:6px">الخطوات: ${d}/${(t.steps||[]).length}</div>`+(c.length?`<div style="margin-top:4px;color:#0b6e69;font-weight:600">● الخطوة الحالية: ${c.map(x=>esc(x.text)).join('، ')}</div>`:'')})()}</div>`).join('');
