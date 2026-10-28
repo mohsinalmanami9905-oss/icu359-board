@@ -48,6 +48,11 @@ details.ph>summary::-webkit-details-marker{display:none}
 ul.r{margin:0;padding-right:18px;font-size:13.5px}ul.r li{margin:4px 0}
 .org{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}.org:first-child{border-top:0}
 .org .e{font-size:11.5px;color:var(--mut);direction:ltr}
+.stp{list-style:none;margin:8px 0 0;padding:0;font-size:13px}.stp li{display:flex;gap:8px;padding:3px 0;color:#344255}
+.stp i{font-style:normal;width:16px;flex:none;text-align:center}.stp .done{color:#7a8796;text-decoration:line-through;text-decoration-color:#c5ccd4}.stp .doing{color:#0b6e69;font-weight:700}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#9aa5b1;margin-left:6px}.dot.on{background:#1aa36f;box-shadow:0 0 0 4px rgba(26,163,111,.18)}
+.act{font-size:12.5px;padding:6px 0;border-top:1px solid var(--line);display:flex;gap:8px}.act:first-child{border-top:0}.act .tm{color:var(--mut);min-width:38px;direction:ltr}.act .w{color:var(--mut);font-size:11px;white-space:nowrap}
+.act .x{flex:1;unicode-bidi:plaintext;word-break:break-word}
 .lock{padding:60px 20px;text-align:center;color:var(--mut)}
 .mut{color:var(--mut);font-size:13px}
 </style>
@@ -74,13 +79,17 @@ function render(P){
   let h=`<header><div class="k">ICU · 359</div><h1>${esc(P.title)}</h1><div class="u">آخر تحديث: ${esc(P.updated)} (بتوقيت البحرين)</div>
   <div class="big"><div><b>${pct}%</b><span>من الخطة كاملة</span></div><div><b>${all.filter(fin).length}/${all.length}</b><span>مهمة منجزة</span></div><div><b>${esc(cur?cur.id:'✓')}</b><span>المرحلة الحالية</span></div></div>
   <div class="bar" style="background:rgba(255,255,255,.12)"><i style="width:${pct}%;background:#a8834a"></i></div></header><main>`;
-  h+=`<h2>يُعمل عليه الآن</h2>`+(doing.length?doing.map(t=>`<div class="card now"><div class="mut">${esc(t.id)}</div><b>${esc(t.title)}</b><p class="mut" style="margin:6px 0 0">${esc(t.detail)}</p></div>`).join(''):`<div class="card mut">لا شيء قيد العمل الآن.</div>`);
+  h+=`<h2>يُعمل عليه الآن</h2>`+(doing.length?doing.map(t=>`<div class="card now"><div class="mut">${esc(t.id)}</div><b>${esc(t.title)}</b>${(()=>{const c=(t.steps||[]).filter(x=>x.status==='doing');const d=(t.steps||[]).filter(x=>x.status==='done').length;return `<div class="mut" style="margin-top:6px">الخطوات: ${d}/${(t.steps||[]).length}</div>`+(c.length?`<div style="margin-top:4px;color:#0b6e69;font-weight:600">● الخطوة الحالية: ${c.map(x=>esc(x.text)).join('، ')}</div>`:'')})()}</div>`).join(''):`<div class="card mut">لا شيء قيد العمل الآن.</div>`);
+  const L=P.live; if(L){h+=`<h2>النشاط الحي (تلقائي)</h2><div class="card"><div style="font-size:13px"><span class="dot ${L.active?'on':''}"></span>${L.active?'يعمل الآن':'لا نشاط خلال آخر 5 دقائق'} · آخر حركة ${esc(L.last)}</div>`;
+   const row=x=>`<div class="act"><span class="tm">${esc(x.t)}</span><span class="x">${esc(x.what)}</span><span class="w">${esc(x.who)}</span></div>`;
+   if((L.agents||[]).length) h+=`<div class="mut" style="margin-top:10px">الوكلاء</div>`+L.agents.map(row).join('');
+   h+=`<div class="mut" style="margin-top:10px">Hermes</div>`+(L.hermes||[]).map(row).join('')+`<p class="mut" style="margin:8px 0 0">هذا القسم يُكتب آلياً من سجلات النظام كل دقيقة ونصف، بدون أي تكلفة.</p></div>`;}
   if(gates.length) h+=`<h2>بانتظار قرارك</h2>`+gates.map(t=>`<div class="card"><span class="st s-gate">${SL.gate}</span> <b>${esc(t.id)} ${esc(t.title)}</b><p class="mut" style="margin:6px 0 0">${esc(t.detail)}</p></div>`).join('');
   h+=`<h2>المراحل</h2>`;
   for(const p of P.phases){
     const d=p.tasks.filter(fin).length, pp=Math.round(100*d/p.tasks.length);
     h+=`<details class="ph"${p===cur?' open':''}><summary><span class="cnt">${d}/${p.tasks.length}</span><div class="phid">${esc(p.id)}</div><div class="pht">${esc(p.title)}</div><div class="phg">${esc(p.goal)}</div><div class="bar"><i style="width:${pp}%"></i></div></summary>`;
-    for(const t of p.tasks) h+=`<div class="t"><div class="h"><span class="id">${esc(t.id)}</span><span class="ti">${esc(t.title)}${t.gate?' <span class="st s-gate" style="font-size:10.5px">بوابة المالك</span>':''}</span><span class="st s-${t.status}">${SL[t.status]||t.status}</span></div><p>${esc(t.detail)}</p><div class="acc"><b>معيار الإنجاز:</b> ${esc(t.acceptance)}</div>${t.evidence?`<div class="ev">الدليل: ${esc(t.evidence)}</div>`:''}${t.updated?`<div class="acc">تحديث: ${esc(t.updated)}</div>`:''}</div>`;
+    for(const t of p.tasks) h+=`<div class="t"><div class="h"><span class="id">${esc(t.id)}</span><span class="ti">${esc(t.title)}${t.gate?' <span class="st s-gate" style="font-size:10.5px">بوابة المالك</span>':''}</span><span class="st s-${t.status}">${SL[t.status]||t.status}</span></div><p>${esc(t.detail)}</p>${(t.steps||[]).length?`<ul class="stp">${t.steps.map(x=>`<li class="${x.status}"><i>${x.status==='done'?'✓':x.status==='doing'?'●':x.status==='blocked'?'!':'○'}</i><span>${esc(x.text)}</span></li>`).join('')}</ul>`:''}<div class="acc"><b>معيار الإنجاز:</b> ${esc(t.acceptance)}</div>${t.evidence?`<div class="ev">الدليل: ${esc(t.evidence)}</div>`:''}${t.updated?`<div class="acc">تحديث: ${esc(t.updated)}</div>`:''}</div>`;
     h+=`</details>`;
   }
   h+=`<h2>بطاقة الدرجات (الهدف 10/10)</h2><div class="card">`+P.score.map(s=>{const v=s.now;return `<div class="sc"><span class="n">${esc(s.name)}</span><span class="v">${v==null?'لم يُقَس':v+'/10'}</span><div class="bar"><i style="width:${v==null?0:v*10}%"></i></div><div class="ten">10/10 يعني: ${esc(s.ten)}</div></div>`}).join('')+`<p class="mut" style="margin:10px 0 0">الدرجات الحالية أولية من الدراسة الأولى، وتُعاد قياساتها بالكامل في المرحلة P3.</p></div>`;
@@ -88,7 +97,7 @@ function render(P){
   h+=`<h2>شركة 359: الأقسام</h2><div class="card">`+P.org.map(o=>`<div class="org"><div><b>${esc(o.name)}</b><div class="mut">${esc(o.role)}</div></div><div class="e">${esc(o.en)}</div></div>`).join('')+`</div>`;
   h+=`<h2>قواعد العمل</h2><div class="card"><ul class="r">`+P.rules.map(r=>`<li>${esc(r)}</li>`).join('')+`</ul></div>`;
   h+=`<h2>الاشتراك والحصة</h2><div class="card"><div>${esc(P.quota.plan)} · ينتهي ${esc(P.quota.ends)} · يتجدد ${esc(P.quota.reset)}</div><div class="mut">${esc(P.quota.note)}</div></div>`;
-  h+=`<h2>مسار موازٍ</h2>`+P.track_b.map(t=>`<div class="card"><span class="st s-${t.status}">${SL[t.status]||t.status}</span> <b>${esc(t.title)}</b><p class="mut" style="margin:6px 0 0">${esc(t.detail)}</p></div>`).join('');
+  h+=`<h2>مسار موازٍ</h2>`+P.track_b.map(t=>`<div class="card"><span class="st s-${t.status}">${SL[t.status]||t.status}</span> <b>${esc(t.title)}</b>${(()=>{const c=(t.steps||[]).filter(x=>x.status==='doing');const d=(t.steps||[]).filter(x=>x.status==='done').length;return `<div class="mut" style="margin-top:6px">الخطوات: ${d}/${(t.steps||[]).length}</div>`+(c.length?`<div style="margin-top:4px;color:#0b6e69;font-weight:600">● الخطوة الحالية: ${c.map(x=>esc(x.text)).join('، ')}</div>`:'')})()}</div>`).join('');
   h+=`<p class="mut" style="text-align:center;margin-top:24px">الصفحة تتحدث تلقائياً مع كل خطوة. اسحب للأسفل لتحديثها.</p></main>`;
   document.getElementById('app').innerHTML=h;
 }
